@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Tutor de Investimentos</title>
+    <!-- Carrega Tailwind CSS para estilização -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configuração do tema Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-bg': '#0f172a', // Slate 900
+                        'card-bg': '#1e293b', // Slate 800
+                        'primary-action': '#34d399', // Emerald 400 (Ação principal)
+                        'secondary-highlight': '#8b5cf6', // Violet 500
+                        'profit-green': '#10b981', // Emerald 600 para lucro
+                        'risk-low': '#22c55e',
+                        'risk-medium': '#facc15',
+                        'risk-high': '#ef4444',
+                        'header-bg': '#334155', // Slate 700 para cabeçalhos
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        /* Estilos de gradiente para o botão de Ação */
+        .ai-button-gradient {
+            background-image: linear-gradient(to right, #34d399, #10b981); /* Emerald */
+            transition: all 0.3s ease;
+        }
+        .ai-button-gradient:hover:not(:disabled) {
+            background-image: linear-gradient(to right, #10b981, #34d399);
+            transform: translateY(-1px);
+            box-shadow: 0 5px 20px rgba(52, 211, 153, 0.5);
+        }
+        /* Estilização específica para inputs e selects */
+        .input-style {
+            background-color: #0f172a; /* dark-bg */
+            border: 1px solid #334155; /* Slate 700 */
+            color: #f8fafc;
+            transition: border-color 0.3s;
+        }
+        .input-style:focus {
+            border-color: #8b5cf6; /* secondary-highlight */
+            box-shadow: 0 0 0 1px #8b5cf6;
+        }
+        /* Estilo para a tabela de resultados */
+        .investment-table th, .investment-table td {
+            padding: 14px 12px; /* Aumenta o padding vertical */
+            text-align: left;
+        }
+        .investment-table th {
+            color: #f8fafc; /* Texto branco no cabeçalho */
+            background-color: #334155; /* Fundo escuro */
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            border-bottom: 2px solid #34d399; /* Linha de destaque verde */
+        }
+        .investment-table tbody tr {
+            border-bottom: 1px solid #334155;
+            transition: background-color 0.2s ease;
+        }
+        .investment-table tbody tr:hover {
+            background-color: #2d384c; /* Hover mais escuro */
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 sm:p-8">
+
+    <!-- Cabeçalho -->
+    <header class="max-w-7xl mx-auto text-center mb-10">
+        <h1 class="text-4xl sm:text-5xl font-extrabold text-white">
+            <span class="text-primary-action">AI Tutor</span> de Investimentos
+        </h1>
+        <p class="text-gray-400 mt-2 text-lg">Receba uma lista comparativa de 5 opções de alto potencial de lucro.</p>
+    </header>
+
+    <!-- Layout Principal: Formulário (Left) e Resultado (Right) -->
+    <main class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Coluna 1: Formulário de Entrada (Sticky e Corrigido) -->
+        <section class="lg:col-span-1 h-fit bg-card-bg p-6 rounded-xl shadow-2xl lg:sticky lg:top-8 border border-gray-700">
+            <h2 class="text-2xl font-bold border-b border-gray-700 pb-3 mb-5 text-secondary-highlight">Defina Seu Objetivo</h2>
+            
+            <!-- Campo 1: Valor a Investir -->
+            <div class="mb-6">
+                <label for="investmentAmount" class="block text-sm font-medium text-gray-300 mb-2">Valor que deseja investir (R$)</label>
+                <input type="number" id="investmentAmount" placeholder="Ex: 1000.00" step="0.01" min="0.01" required
+                       class="w-full p-3 rounded-lg input-style">
+            </div>
+
+            <!-- Campo 2: Seleção do Banco (Lista Expandida) -->
+            <div class="mb-6">
+                <label for="userBank" class="block text-sm font-medium text-gray-300 mb-2">Seu Banco/Corretora Principal</label>
+                <select id="userBank" required
+                        class="w-full p-3 rounded-lg input-style appearance-none">
+                    <option value="" disabled selected>Selecione seu banco/corretora</option>
+                    <option value="Nubank">Nubank/NuConta</option>
+                    <option value="Banco Inter">Banco Inter</option>
+                    <option value="C6 Bank">C6 Bank</option>
+                    <option value="Banco do Brasil">Banco do Brasil (BB)</option>
+                    <option value="Itaú Unibanco">Itaú Unibanco</option>
+                    <option value="Bradesco">Bradesco</option>
+                    <option value="Santander">Santander</option>
+                    <option value="XP Investimentos">XP Investimentos</option>
+                    <option value="BTG Pactual">BTG Pactual</option>
+                    <option value="Outro">Outro / Não listado</option>
+                </select>
+            </div>
+
+            <!-- Campo 3: Tipo de Conta (Kids ou Maior de Idade) -->
+            <div class="mb-6">
+                <label for="accountType" class="block text-sm font-medium text-gray-300 mb-2">Tipo de Conta</label>
+                <select id="accountType" required
+                        class="w-full p-3 rounded-lg input-style appearance-none">
+                    <option value="maior de idade" selected>Maior de Idade</option>
+                    <option value="kids/menor de idade">Conta Kids / Menor de Idade</option>
+                </select>
+            </div>
+            
+            <!-- Campo 4: Dias para Resgate -->
+            <div class="mb-8">
+                <label for="liquidityDays" class="block text-sm font-medium text-gray-300 mb-2">Dias para Resgate (Opcional)</label>
+                <input type="number" id="liquidityDays" placeholder="Ex: 0 (Diário), 15, 365. Em branco: Longo Prazo." min="0"
+                       class="w-full p-3 rounded-lg input-style">
+                <p class="text-xs text-gray-500 mt-1">0 ou 1 dia = Liquidez Diária. Se vazio, a IA prioriza o Lucro Máximo.</p>
+            </div>
+
+            <!-- Botão de Ação -->
+            <button id="generateAdviceButton" class="w-full py-3 px-6 rounded-xl font-bold text-dark-bg ai-button-gradient disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
+                Gerar 5 Opções Otimizadas 🌟
+            </button>
+            
+            <p id="inputError" class="text-red-400 text-sm mt-4 hidden text-center">Por favor, preencha o valor e selecione um banco.</p>
+
+        </section>
+        
+        <!-- Coluna 2: Resultado e Relatório da IA (Tabela) -->
+        <section class="lg:col-span-2 bg-card-bg p-8 rounded-xl shadow-2xl border border-gray-700">
+            <h2 class="text-2xl font-bold border-b border-gray-700 pb-3 mb-5 text-primary-action flex items-center">
+                 Dashboard de Análise de Investimentos
+                 <!-- Ícone de Tabela -->
+                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 ml-2 text-secondary-highlight">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                    <line x1="12" y1="3" x2="12" y2="21"></line>
+                 </svg>
+            </h2>
+            
+            <div id="aiResultBox" class="text-gray-300 min-h-[300px]">
+                <p class="text-gray-500 italic">Preencha o formulário e clique no botão para que a IA gere uma lista comparativa de 5 opções de investimento de alto potencial de lucro, filtradas pelo seu banco e requisitos.</p>
+            </div>
+
+            <!-- Citações de Grounding (Se houver) -->
+            <div id="sourcesContainer" class="mt-8 pt-4 border-t border-gray-700 hidden">
+                <h4 class="text-sm font-semibold text-gray-400 mb-3">Fontes Consultadas:</h4>
+                <ul id="sourcesList" class="text-xs space-y-2 text-secondary-highlight list-disc list-inside">
+                    <!-- Links de citação serão inseridos aqui -->
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal de Loading/Mensagem -->
+    <div id="messageModal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center p-4 z-50">
+        <div class="bg-card-bg p-8 rounded-xl max-w-sm w-full shadow-2xl border border-secondary-highlight">
+            <h3 id="modalTitle" class="text-xl font-bold mb-4 text-secondary-highlight">Processando...</h3>
+            <p id="modalBody" class="text-gray-300 mb-6">A IA está buscando ativamente no mercado opções de alto potencial de lucro.</p>
+            <div id="modalLoading" class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-secondary-highlight mx-auto"></div>
+            <button id="closeMessageModal" class="w-full py-2 bg-secondary-highlight hover:bg-violet-700 text-white font-semibold rounded-lg mt-4 hidden">
+                Fechar
+            </button>
+        </div>
+    </div>
+
+
+    <!-- Lógica da Aplicação -->
+    <script>
+        // Variáveis Globais
+        // A chave da API Gemini foi inserida aqui:
+        const apiKey = "AIzaSyDZr_Omq4MIo51YJKdShyoz7visDj37sDE"; 
+        const MAX_RETRIES = 3; // Número máximo de tentativas de API
+
+        // DOM Elements
+        const amountInput = document.getElementById('investmentAmount');
+        const bankSelect = document.getElementById('userBank');
+        const accountTypeSelect = document.getElementById('accountType');
+        const liquidityDaysInput = document.getElementById('liquidityDays');
+        const generateButton = document.getElementById('generateAdviceButton');
+        const inputErrorEl = document.getElementById('inputError');
+        const aiResultBox = document.getElementById('aiResultBox');
+        const sourcesContainer = document.getElementById('sourcesContainer');
+        const sourcesList = document.getElementById('sourcesList');
+
+        // Modal Elements
+        const messageModal = document.getElementById('messageModal');
+        const modalTitleEl = document.getElementById('modalTitle');
+        const modalBodyEl = document.getElementById('modalBody');
+        const modalLoadingEl = document.getElementById('modalLoading');
+        const closeModalButton = document.getElementById('closeMessageModal');
+
+        // --- UTILITY FUNCTIONS ---
+        
+        /** * Analisa a string de texto para extrair dados formatados como uma tabela Markdown.
+         * Assume a ordem das colunas: Nome, Rentabilidade, Resgate, Risco.
+         */
+        const parseMarkdownTable = (text) => {
+            // Divide o texto em linhas, filtra linhas vazias e as que não são tabelas
+            const lines = text.split('\n').map(line => line.trim());
+            const results = [];
+            let dataLines = [];
+            let headerFound = false;
+
+            for (const line of lines) {
+                const trimmedLine = line.trim();
+                
+                // Procura a linha de separação (e.g., |---|---|...)
+                if (trimmedLine.includes('---')) {
+                    headerFound = true;
+                    continue; // Pula a linha de separação
+                }
+
+                // Se o separador foi encontrado e a linha começa com '|', é uma linha de dados ou cabeçalho
+                if (headerFound && trimmedLine.startsWith('|')) {
+                    // Pula o cabeçalho se ele ainda não foi filtrado
+                    if (!trimmedLine.toLowerCase().includes('nome') && !trimmedLine.toLowerCase().includes('ativo')) {
+                        dataLines.push(trimmedLine);
+                    }
+                }
+            }
+
+            // O parser principal: Extrai 4 colunas de cada linha
+            dataLines.forEach(line => {
+                // Divide por '|', remove espaços vazios, filtra strings vazias
+                const columns = line.split('|').map(col => col.trim()).filter(col => col.length > 0);
+
+                // Deve haver no mínimo 4 colunas de dados
+                if (columns.length >= 4) {
+                    results.push({
+                        nome: columns[0],
+                        rentabilidade: columns[1],
+                        resgate: columns[2],
+                        risco: columns[3],
+                    });
+                }
+            });
+
+            if (results.length === 0) {
+                 // Fallback mais agressivo: tenta extrair mesmo sem separador, pegando qualquer linha que tenha 3 barras (|)
+                 const fallbackLines = lines.filter(line => line.startsWith('|') && line.split('|').length >= 5 && !line.includes('---'));
+                 if (fallbackLines.length > 0) {
+                     fallbackLines.forEach(line => {
+                         const columns = line.split('|').map(col => col.trim()).filter(col => col.length > 0);
+                         if (columns.length >= 4) {
+                             results.push({
+                                 nome: columns[0],
+                                 rentabilidade: columns[1],
+                                 resgate: columns[2],
+                                 risco: columns[3],
+                             });
+                         }
+                     });
+                 }
+            }
+            
+            return results;
+        };
+
+
+        /** Mapeia risco em cores e ícones */
+        const getRiskHtml = (risk) => {
+            const riskLower = risk.toLowerCase();
+            let color, text;
+            if (riskLower.includes('baixo') || riskLower.includes('low') || riskLower.includes('baixa')) {
+                color = 'risk-low';
+                text = 'Baixo';
+            } else if (riskLower.includes('moderado') || riskLower.includes('medium') || riskLower.includes('média')) {
+                color = 'risk-medium';
+                text = 'Moderado';
+            } else if (riskLower.includes('alto') || riskLower.includes('high') || riskLower.includes('elevado')) {
+                color = 'risk-high';
+                text = 'Alto';
+            } else {
+                color = 'gray-500';
+                text = risk; // Usa o texto original se não for reconhecido
+            }
+            // Retorna um elemento estilizado com a cor correspondente
+            return `<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-${color} text-dark-bg whitespace-nowrap">${text}</span>`;
+        };
+        
+        /** Exibe um modal de loading/mensagem. */
+        const showMessageModal = (title, body, isLoading) => {
+            modalTitleEl.textContent = title;
+            modalBodyEl.textContent = body;
+            modalLoadingEl.classList.toggle('hidden', !isLoading);
+            closeModalButton.classList.toggle('hidden', isLoading);
+            messageModal.classList.add('flex');
+            messageModal.classList.remove('hidden');
+        };
+
+        const hideMessageModal = () => {
+             messageModal.classList.add('hidden');
+             messageModal.classList.remove('flex');
+        };
+
+        closeModalButton.addEventListener('click', hideMessageModal);
+
+        /**
+         * Wrapper de fetch com Exponential Backoff para robustez de API.
+         */
+        const fetchWithRetry = async (url, options, retries = 0) => {
+            try {
+                const response = await fetch(url, options);
+                if (response.status >= 500) {
+                    // Trata erros de servidor (5xx) com retry
+                    throw new Error(`Server error: ${response.status}`);
+                }
+                if (!response.ok) {
+                    // Trata outros erros HTTP (e.g., 4xx) sem retry
+                    const errorDetails = await response.text();
+                    throw new Error(`HTTP error ${response.status}: ${errorDetails}`);
+                }
+                return response;
+            } catch (error) {
+                if (retries < MAX_RETRIES) {
+                    const delay = Math.pow(2, retries) * 1000 + Math.random() * 500; // Atraso: 1s, 2s, 4s + jitter
+                    // console.warn(`Tentativa ${retries + 1} falhou. Retrying in ${Math.round(delay / 1000)}s...`); // Removido para não poluir o console
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return fetchWithRetry(url, options, retries + 1);
+                }
+                throw error; // Lança o erro final após falhar todas as tentativas
+            }
+        };
+
+        /**
+         * Lógica para gerar o conselho de investimento através da API Gemini.
+         */
+        const generateAdvice = async () => {
+            const amount = parseFloat(amountInput.value);
+            const bankName = bankSelect.value;
+            const accountType = accountTypeSelect.value;
+            const liquidityDays = liquidityDaysInput.value ? parseInt(liquidityDaysInput.value) : null;
+            
+            // 1. Validação
+            if (apiKey === "INSIRA_SUA_CHAVE_AQUI" || apiKey === "") {
+                 inputErrorEl.textContent = "Erro: Chave da API Gemini ausente. Insira sua chave no código-fonte para continuar.";
+                 inputErrorEl.classList.remove('hidden');
+                 showMessageModal("Erro de Conexão", "A chave da API Gemini não foi fornecida. Por favor, insira sua chave no código-fonte para que o site possa se conectar.", false);
+                 return;
+            }
+
+            if (isNaN(amount) || amount <= 0 || !bankName || !accountType) {
+                inputErrorEl.textContent = "Por favor, preencha o valor e selecione um banco.";
+                inputErrorEl.classList.remove('hidden');
+                return;
+            }
+            inputErrorEl.classList.add('hidden');
+            
+            generateButton.disabled = true;
+            showMessageModal("Analisando o Mercado...", "A IA está buscando ativamente no mercado opções de alto potencial de lucro para o seu perfil e banco.", true);
+
+            // Formatação do valor para o prompt
+            const formattedAmount = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(amount);
+            
+            // Texto para o requisito de liquidez
+            const liquidityDaysValue = liquidityDays !== null 
+                ? `${liquidityDays} dias (Liquidez: D+${liquidityDays})` 
+                : "Longo Prazo (Foco em Lucro Máximo)";
+            
+            const summaryText = `Análise baseada em: ${formattedAmount}, conta ${accountType}, e foco em ${liquidityDaysValue}.`;
+
+            // O userQuery agora é o que a IA usará para a busca (grounding)
+            const userQuery = `Gere uma lista de 1 a 5 opções de investimento reais disponíveis no ${bankName}, focando em ALTO POTENCIAL DE LUCRO (maior % CDI ou FIIs/Ações com alto dividendo) e respeitando o valor de ${formattedAmount} e o tipo de conta ${accountType}. O prazo de resgate desejado é ${liquidityDaysValue}. A saída DEVE ser uma única tabela em Markdown (usando barras '|' e '---' de separação) com 4 colunas: 'Ativo', 'Rentabilidade', 'Resgate' e 'Risco'. NENHUM texto deve acompanhar a tabela.`;
+
+            // System Prompt reforçado para *apenas* a Tabela Markdown
+            const systemPrompt = "Você é um professor de finanças e consultor de investimentos. Sua resposta DEVE SER ESTRITAMENTE uma tabela Markdown com o cabeçalho solicitado, sem NENHUM texto introdutório, explicações, saudações ou código JSON. Certifique-se de que cada opção utilize dados REAIS e seja compatível com o banco/corretora especificado. A rentabilidade deve ser expressa em '% do CDI' ou '% ao ano'.";
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+            // Configuração do payload (CORRIGIDO)
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                tools: [{ "google_search": {} }], // CORRIGIDO: Apenas ativa o Google Search Grounding
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+            };
+
+            aiResultBox.innerHTML = `<p class="text-gray-500 italic">Consultando a inteligência financeira...</p>`;
+            sourcesContainer.classList.add('hidden');
+            sourcesList.innerHTML = '';
+
+            try {
+                // Chama a API com Retry (Exponential Backoff)
+                const response = await fetchWithRetry(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                const candidate = result.candidates?.[0];
+
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    const rawText = candidate.content.parts[0].text;
+                    
+                    // NOVO PARSING: Usa a função de parseamento de Tabela Markdown
+                    const parsedData = parseMarkdownTable(rawText); 
+                    
+                    if (Array.isArray(parsedData) && parsedData.length > 0) {
+                        
+                        // Renderiza a tabela de resultados
+                        const tableRows = parsedData.map(option => `
+                            <tr class="transition duration-300">
+                                <td class="text-white font-medium">${option.nome || 'N/D'}</td>
+                                <td class="text-profit-green font-bold">${option.rentabilidade || 'N/D'}</td>
+                                <td class="text-gray-400">${option.resgate || 'N/D'}</td>
+                                <td>${getRiskHtml(option.risco || 'N/D')}</td>
+                            </tr>
+                        `).join('');
+
+                        const tableHtml = `
+                            <div class="bg-header-bg p-4 rounded-t-xl mb-4 shadow-inner">
+                                <p class="text-sm font-semibold text-gray-300">${summaryText}</p>
+                                <p class="text-xs text-primary-action font-medium mt-1">${parsedData.length} Opção(ões) de Alto Potencial de Lucro Otimizadas:</p>
+                            </div>
+                            <div class="overflow-x-auto rounded-b-xl border border-gray-700 shadow-xl">
+                                <table class="investment-table w-full border-collapse">
+                                    <thead>
+                                        <tr>
+                                            <th>Ativo (Foco em Lucro)</th>
+                                            <th>Rentabilidade</th>
+                                            <th>Resgate</th>
+                                            <th>Risco</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${tableRows}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <p class="mt-4 text-sm text-gray-500 italic">Lembre-se: % CDI é Renda Fixa (segurança). % ao ano/dividendos é Renda Variável (maior potencial de lucro/risco).</p>
+                        `;
+
+                        aiResultBox.innerHTML = tableHtml;
+
+                        // Extrai e exibe as fontes (citações)
+                        let sources = [];
+                        const groundingMetadata = candidate.groundingMetadata;
+                        if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                            sources = groundingMetadata.groundingAttributions
+                                .map(attribution => ({
+                                    uri: attribution.web?.uri,
+                                    title: attribution.web?.title,
+                                }))
+                                .filter(source => source.uri && source.title);
+                        }
+
+                        if (sources.length > 0) {
+                            sourcesContainer.classList.remove('hidden');
+                            sourcesList.innerHTML = sources.map((source, index) =>
+                                `<li>${index + 1}. <a href="${source.uri}" target="_blank" class="hover:underline">${source.title || source.uri}</a></li>`
+                            ).join('');
+                        } else {
+                            sourcesContainer.classList.add('hidden');
+                        }
+                        
+                        modalTitleEl.textContent = "Lista Gerada!";
+                        modalBodyEl.textContent = `A lista de ${parsedData.length} melhor(es) opção(ões) está pronta para comparação.`;
+
+                    } else {
+                         throw new Error("A IA não retornou dados de tabela válidos no formato Markdown ou a lista estava vazia.");
+                    }
+                } else {
+                    aiResultBox.innerHTML = '<p class="text-red-400">Não foi possível gerar a lista. A IA não retornou um conteúdo válido (candidato ou texto ausente).</p>';
+                    modalTitleEl.textContent = "Erro na IA";
+                    modalBodyEl.textContent = "Não foi possível obter uma resposta válida do modelo Gemini. Tente mudar os parâmetros.";
+                }
+            } catch (error) {
+                console.error("Erro Final no Processamento:", error);
+                aiResultBox.innerHTML = `<p class="text-red-400">Erro de processamento fatal: ${error.message}. Este erro ocorreu ao tentar analisar o formato Markdown. Tente mudar os parâmetros de entrada.</p>`;
+                modalTitleEl.textContent = "Falha Crítica";
+                modalBodyEl.textContent = `Ocorreu um erro ao processar a resposta da IA. Mensagem: ${error.message}.`;
+            } finally {
+                generateButton.disabled = false;
+                modalLoadingEl.classList.add('hidden');
+                closeModalButton.classList.remove('hidden');
+            }
+        };
+
+        // --- INICIALIZAÇÃO E LISTENERS ---
+        window.onload = () => {
+            generateButton.addEventListener('click', generateAdvice);
+        };
+
+    </script>
+</body>
+</html>
